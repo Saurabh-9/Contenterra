@@ -1,5 +1,5 @@
 // Simple Vercel serverless function to proxy Reddit JSON and avoid CORS.
-module.exports = async (req, res) => {
+export default async function handler(req, res) {
   try {
     // Use a browser-like user-agent and common headers to reduce the chance Reddit blocks the request
     const headers = {
