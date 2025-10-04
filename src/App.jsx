@@ -23,7 +23,11 @@ function App() {
         // use platform-friendly proxy path - in dev vite proxies /api/reddit to reddit,
         // and on Vercel we provide a serverless function at /api/reddit
         const res = await fetch('/api/reddit', { signal: controller.signal })
-        if (!res.ok) throw new Error(`${res.status} ${res.statusText}`)
+        if (!res.ok) {
+          // try to read any helpful text the server returned (our proxy forwards short upstream previews)
+          const body = await res.text().catch(() => '')
+          throw new Error(body || `${res.status} ${res.statusText}`)
+        }
         const json = await res.json()
         const children = json?.data?.children || []
         setPosts(children.map((c) => c.data))
