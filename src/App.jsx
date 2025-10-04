@@ -20,10 +20,9 @@ function App() {
     const fetchPosts = async () => {
       try {
         setLoading(true)
-        const base = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-          ? '/api/reddit/r/reactjs.json'
-          : 'https://www.reddit.com/r/reactjs.json'
-        const res = await fetch(base, { signal: controller.signal })
+        // use platform-friendly proxy path - in dev vite proxies /api/reddit to reddit,
+        // and on Vercel we provide a serverless function at /api/reddit
+        const res = await fetch('/api/reddit', { signal: controller.signal })
         if (!res.ok) throw new Error(`${res.status} ${res.statusText}`)
         const json = await res.json()
         const children = json?.data?.children || []
