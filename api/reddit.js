@@ -10,16 +10,21 @@ module.exports = async (req, res) => {
 
     const r = await fetch('https://www.reddit.com/r/reactjs.json', { headers })
 
+    // Debug logs for Vercel function — upstream status and content-type
+    console.log(`[reddit-proxy] upstream status=${r.status} ${r.statusText}`)
+    const contentType = r.headers.get('content-type') || ''
+    console.log(`[reddit-proxy] upstream content-type=${contentType}`)
+
     // If upstream returns non-OK, forward status and a small message to help debugging
     if (!r.ok) {
       const text = await r.text().catch(() => '')
+      console.error(`[reddit-proxy] upstream error ${r.status} ${r.statusText}: ${text.slice(0,200)}`)
       res.setHeader('Access-Control-Allow-Origin', '*')
       res.status(r.status).send(`Upstream error: ${r.status} ${r.statusText}\n${text.slice(0, 200)}`)
       return
     }
 
     // Try to parse JSON; if parse fails, forward text
-    const contentType = r.headers.get('content-type') || ''
     let payload
     if (contentType.includes('application/json')) {
       payload = await r.json()
@@ -28,11 +33,20 @@ module.exports = async (req, res) => {
       try {
         payload = JSON.parse(text)
       } catch (e) {
+        console.error('[reddit-proxy] upstream returned non-JSON body')
         // upstream returned HTML or unexpected content
         res.setHeader('Access-Control-Allow-Origin', '*')
         res.status(502).send('Upstream did not return JSON')
         return
       }
+    }
+
+    // Log number of posts if available
+    try {
+      const count = Array.isArray(payload?.data?.children) ? payload.data.children.length : undefined
+      console.log(`[reddit-proxy] fetched posts=${count}`)
+    } catch (e) {
+      console.log('[reddit-proxy] could not determine posts count')
     }
 
     // cache on the edge for a short time
